@@ -122,18 +122,34 @@ function createTaskElement(task) {
 }
 
 /**
- * タスクリストのHTMLを作成する
+ * 現在の状態（tasks, filter）に基づいて画面を再描画する
  *
- * NOTE: タスクが存在しない時はタスクリストのHTMLを生成しない（描画なし）
+ * 以下の処理をすべて実行します：
+ * 1. 選択中のフィルター（all/active/completed）に応じたタスクの絞り込みとリスト描画
+ * 2. フッター（残り件数 / 総件数）のテキスト更新
+ * 3. フィルターボタンのアクティブ状態（CSSクラス）の切り替え
  */
 function render() {
-  // タスクリストの描画をリセットする
-  taskList.innerHTML = '';
+  // フィルタに応じた絞り込みでtasks配列を作り直す
+  const visibleTasks = tasks.filter((task) => {
+    if (filter === 'active') return !task.completed;
+    if (filter === 'completed') return task.completed;
+    return true;
+  });
 
-  // タスクリストのHTMLを作成する
-  tasks.forEach((task) => {
-    // ul#taskList にタスクリストのli要素を追加
+  // タスクリストの再描画（空にしてから生成し直す）
+  taskList.innerHTML = '';
+  visibleTasks.forEach((task) => {
     taskList.appendChild(createTaskElement(task));
+  });
+
+  // フッター（残り件数 / 総件数）
+  const remaining = tasks.filter((task) => !task.completed).length;
+  taskCount.textContent = `残り ${remaining} 件 / 全 ${tasks.length} 件`;
+
+  // フィルタータブのアクティブ状態（CSSクラス）の切り替え
+  filterButtons.forEach((btn) => {
+    btn.classList.toggle('active', btn.dataset.filter === filter);
   });
 }
 
@@ -173,6 +189,7 @@ function handleTaskSubmit(event) {
 function handleTaskListClick(event) {
   // クリックされた要素の data-id と data-action を取得
   const { id, action } = event.target.dataset;
+
   // idが存在しない場合は何もしない
   if (!id) return;
 
@@ -189,6 +206,25 @@ function handleTaskListClick(event) {
   render();
 }
 
+/**
+ * フィルターボタンのクリックイベントを処理する
+ *
+ * @param {MouseEvent} event - クリックイベントのオブジェクト
+ */
+function handleFilterClick(event) {
+  // クリックされたボタンの data-filter を取得
+  const nextFilter = event.target.dataset.filter;
+
+  // data-filterが取得できない場合は何もしない
+  if (!nextFilter) return;
+
+  // 状態（filter）を更新
+  filter = nextFilter;
+
+  // 画面を再描画する
+  render();
+}
+
 // ==========================================
 // イベントリスナー
 // ==========================================
@@ -198,6 +234,11 @@ taskForm.addEventListener('submit', handleTaskSubmit);
 
 // --- タスクリストの削除・完了切り替え（イベント移譲）---
 taskList.addEventListener('click', handleTaskListClick);
+
+// --- フィルターボタンの切り替え（各ボタンに個別バインド） ---
+filterButtons.forEach((btn) => {
+  btn.addEventListener('click', handleFilterClick);
+});
 
 // ==========================================
 // 初期描画
