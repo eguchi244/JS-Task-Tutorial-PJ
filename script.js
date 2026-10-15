@@ -82,6 +82,36 @@ function toggleTask(id) {
 }
 
 // ==========================================
+// localStorage 永続化
+// ==========================================
+
+/**
+ * tasks配列をlocalStorageに保存する
+ */
+function saveTasks() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+}
+
+/**
+ * localStorageからtasksを復元する。
+ *
+ * NOTE: データが存在しない、または壊れている場合は空配列にフォールバックする。
+ * NOTE: 配列以外（未保存のnull、"abc" や {} など）はすべて空配列として扱う
+ */
+function loadTasks() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(STORAGE_KEY));
+
+    // 配列判定：配列はそのままtasks配列に代入, 配列以外のデータの場合は空配列にする
+    tasks = Array.isArray(stored) ? stored : [];
+  } catch (error) {
+    // 保存データが壊れていた場合は空の状態から始める
+    tasks = [];
+    console.error(`予期しないエラー: ${error.name} ${error.message}`);
+  }
+}
+
+// ==========================================
 // DOM 描画
 // ==========================================
 
@@ -171,8 +201,9 @@ function handleTaskSubmit(event) {
   const title = taskInput.value.trim();
   if (title === '') return;
 
-  // タスクリストを作成して描画する
+  // タスクリストを作成・保存して描画する
   addTask(title);
+  saveTasks();
   render();
 
   // タスク入力欄を空にしてフォーカスする
@@ -202,7 +233,8 @@ function handleTaskListClick(event) {
     return;
   }
 
-  // 画面を再描画する
+  // タスクリストを保存して再描画する
+  saveTasks();
   render();
 }
 
@@ -243,4 +275,5 @@ filterButtons.forEach((btn) => {
 // ==========================================
 // 初期描画
 // ==========================================
+loadTasks();
 render();
